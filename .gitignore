@@ -1,0 +1,16 @@
+# Renders, review images and clips (large, regenerate them with the app)
+exports/
+
+# local-only scenes (personal, never published)
+scenes/private/
+
+# macOS
+.DS_Store
+
+# Editors
+.vscode/
+.idea/
+*.swp
+
+# Python
+__pycache__/

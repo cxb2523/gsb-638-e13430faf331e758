@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Pixel Engine · Noxe</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Nunito:wght@800&family=Outfit:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root { --paper:#EDEFF2; --ink:#141823; --graphite:#69707F; --violet:#6E2BF0; --lavender:#B08CFF; }
+  html, body { margin:0; height:100%; background:#0b0d14; overflow:hidden; }
+  body { display:flex; align-items:center; justify-content:center; }
+  #stage { position:relative; container-type:size; overflow:hidden; isolation:isolate; background:#000;
+           box-shadow:0 0 0 1px #1c2030, 0 20px 60px rgba(0,0,0,.5); flex:none; }
+  #stage canvas { position:absolute; inset:0; width:100%; height:100%; display:block; image-rendering:pixelated; touch-action:none; }
+
+  /* on-stage control bar */
+  #hud { position:absolute; left:50%; bottom:4cqmin; transform:translateX(-50%); display:flex; align-items:center; gap:1.4em;
+         padding:.75em 1em; border-radius:1.1em; background:rgba(20,24,35,.74); border:1px solid rgba(237,239,242,.1);
+         backdrop-filter:blur(14px) saturate(1.2); -webkit-backdrop-filter:blur(14px) saturate(1.2);
+         box-shadow:0 .6em 2.4em rgba(5,7,14,.35); font-size:clamp(9px, 1.9cqmin, 16px); color:var(--paper);
+         user-select:none; white-space:nowrap; }
+  #hud .group { display:flex; align-items:center; gap:.9em; }
+  #hud .meta { min-width:4.6em; }
+  #hud .label { font:500 .66em/1 'IBM Plex Mono', monospace; letter-spacing:.14em; text-transform:uppercase; color:#8d94a4; }
+  #hud .value { font:600 1.02em/1.25 'Outfit', sans-serif; margin-top:.3em; }
+  #hud .btns, #hud .tools { display:flex; gap:.3em; }
+  #hud .tools { padding-left:1.2em; border-left:1px solid rgba(237,239,242,.12); }
+  #hud button { width:2.35em; height:2.35em; display:grid; place-items:center; padding:0; border:0; border-radius:.65em;
+                background:transparent; color:rgba(237,239,242,.62); cursor:pointer; transition:background .18s, color .18s, transform .12s; }
+  #hud button:hover { background:rgba(237,239,242,.08); color:var(--paper); }
+  #hud button:active { transform:scale(.92); }
+  #hud button.on { background:var(--violet); color:#fff; box-shadow:0 0 0 1px rgba(176,140,255,.45) inset; }
+  #hud button svg { width:1.15em; height:1.15em; display:block; }
+
+  /* pixel cursor for panel recordings */
+  #cursor { position:absolute; left:0; top:0; width:clamp(12px, 2.6cqmin, 26px); pointer-events:none; display:none; z-index:5;
+            margin:-1px 0 0 -1px; transition:scale .08s; transform-origin:0 0; }
+  #cursor svg { display:block; width:100%; height:auto; image-rendering:pixelated; }
+  #cursor.down svg { scale:.86; transform-origin:0 0; }
+  #stage.pixel-cursor, #stage.pixel-cursor * { cursor:none !important; }
+  #stage.pixel-cursor #cursor { display:block; }
+
+  #toast { position:fixed; left:20px; bottom:18px; opacity:0; transform:translateY(8px); transition:.25s; z-index:20;
+           background:var(--ink); color:var(--paper); border:1px solid #2a3042; border-radius:8px; padding:8px 14px;
+           font:400 12px 'Outfit', sans-serif; pointer-events:none; max-width:60vw; }
+  #toast.on { opacity:1; transform:none; }
+  #rec { position:fixed; left:20px; top:16px; display:none; align-items:center; gap:8px; z-index:20;
+         font:500 11px 'IBM Plex Mono', monospace; color:var(--paper); letter-spacing:.08em; }
+  #rec::before { content:''; width:9px; height:9px; border-radius:50%; background:#ff3b5c; animation:blink 1s infinite; }
+  #rec.on { display:flex; }
+  @keyframes blink { 50% { opacity:.25; } }
+  #brand { position:fixed; left:20px; top:16px; font:500 11px 'IBM Plex Mono', monospace; color:#5d6475; letter-spacing:.1em; }
+  #brand b { font:800 13px 'Nunito', sans-serif; color:var(--lavender); letter-spacing:.06em; margin-right:8px; }
+  #rec.on ~ #brand { display:none; }
+  body.recording .lil-gui.root { display:none; }
+
+  .lil-gui { --background-color:#141823; --text-color:#EDEFF2; --title-background-color:#0d1018; --title-text-color:#EDEFF2;
+             --widget-color:#232838; --hover-color:#2c3245; --focus-color:#3a2a6e; --number-color:#B08CFF; --string-color:#B08CFF;
+             --font-family:'IBM Plex Mono', monospace; --font-size:11px; --input-font-size:11px; --widget-height:20px;
+             --name-width:44%; --folder-indent:6px; }
+  .lil-gui.root { border-radius:10px; overflow:hidden; box-shadow:0 10px 40px rgba(0,0,0,.45); top:12px !important; right:12px !important; width:276px; }
+  .lil-gui.root > .title { font-family:'Nunito', sans-serif; font-weight:800; font-size:13px; letter-spacing:.03em; }
+  .lil-gui .title { font-weight:600; }
+  .lil-gui.root > .children { max-height:calc(100vh - 70px); overflow-y:auto; }
+  /* phones: the folded panel stays clear of the brand label */
+  @media (max-width: 899px) { .lil-gui.root.closed { width:150px; } }
+  /* phones in portrait: the scene fills the screen, the controls float at the bottom */
+  #menu, #hud .tabs { display:none; }
+  body.phone #stage { box-shadow:none; }
+  body.phone #brand { top:calc(10px + env(safe-area-inset-top)); left:12px; z-index:21; padding:10px 12px; border-radius:12px; color:#aab0bd;
+                      background:rgba(20,24,35,.62); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); }
+  body.phone #menu { display:grid; place-items:center; position:fixed; right:12px; top:calc(6px + env(safe-area-inset-top)); z-index:21;
+                     width:44px; height:44px; padding:0; border-radius:22px; border:1px solid rgba(237,239,242,.16); color:var(--paper);
+                     background:rgba(20,24,35,.74); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); cursor:pointer; touch-action:manipulation; }
+  body.phone.menu-open #menu { background:var(--violet); }
+  body.phone #menu svg { width:18px; height:18px; display:block; }
+  body.phone .lil-gui.root { display:none !important; }
+  body.phone.menu-open .lil-gui.root { display:block !important; top:calc(58px + env(safe-area-inset-top)) !important; right:12px !important; width:min(300px, calc(100vw - 24px)); }
+  body.phone.menu-open .lil-gui.root > .children { max-height:calc(100vh - 280px); }
+  body.phone #hud { left:12px; right:12px; bottom:calc(14px + env(safe-area-inset-bottom)); transform:none; flex-direction:column; align-items:stretch;
+                    gap:0; padding:8px; border-radius:24px; font-size:16px; white-space:normal; background:rgba(20,24,35,.74); }
+  body.phone #hud .tabs { display:flex; gap:4px; }
+  body.phone #hud .tabs button { flex:1; width:auto; height:38px; border-radius:16px; font:600 14px/1 'Outfit', sans-serif; color:rgba(237,239,242,.6); touch-action:manipulation; }
+  body.phone #hud .tabs button.sel { background:rgba(237,239,242,.13); color:var(--paper); }
+  body.phone #hud .group, body.phone #hud .meta { display:none; }
+  body.phone #hud.tab-time .group.time, body.phone #hud.tab-sky .group.sky, body.phone #hud.tab-scene .group.scene { display:flex; justify-content:center; }
+  body.phone #hud .btns { gap:10px; padding:10px 0 4px; }
+  body.phone #hud .btns button { width:46px; height:46px; border-radius:15px; touch-action:manipulation; }
+  body.phone #hud .btns button svg { width:20px; height:20px; }
+  body.phone #hud .tools { position:absolute; right:2px; bottom:calc(100% + 12px); flex-direction:column; gap:10px; padding:0; border:0; }
+  body.phone #hud .tools button { width:44px; height:44px; border-radius:22px; border:1px solid rgba(237,239,242,.16); color:var(--paper);
+                                  background:rgba(20,24,35,.74); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); touch-action:manipulation; }
+  body.phone #hud .tools button.on { background:var(--violet); }
+  body.phone #hud .tools button svg { width:18px; height:18px; }
+  body.phone #toast { left:12px; right:12px; max-width:none; bottom:calc(200px + env(safe-area-inset-bottom)); }
+  body.phone #rec { top:calc(64px + env(safe-area-inset-top)); left:12px; }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/",
+  "lil-gui": "https://cdn.jsdelivr.net/npm/lil-gui@0.20.0/dist/lil-gui.esm.min.js"
+} }
+</script>
+</head>
+<body>
+<div id="rec"><span>0.0s</span></div>
+<div id="brand"><b>NOXE</b>PIXEL ENGINE</div>
+<button id="menu" aria-label="Settings"><svg viewBox="0 0 9 9" shape-rendering="crispEdges" aria-hidden="true"><path d="M0 1h9v1h-9zM0 4h9v1h-9zM0 7h9v1h-9zM2 0h1v3h-1zM6 3h1v3h-1zM3 6h1v3h-1z" fill="currentColor"/></svg></button>
+<div id="stage">
+  <canvas id="c"></canvas>
+  <div id="hud"></div>
+  <div id="cursor"></div>
+</div>
+<div id="toast"></div>
+<script type="module" src="./app.js"></script>
+</body>
+</html>
