@@ -87,6 +87,7 @@ All clips are standard MP4 files (H.264 + AAC, index first) and land in your Dow
 - **Output size** is under Scene > output: 16:9 (1920×1080), 4:5 (1080×1350), 1:1 (1080×1080) and 9:16. Clips render at twice that size with twice the pixel size (16:9 comes out 3840×2160): the same art pixel for pixel, and X's 1080p copy of the file is an exact half, so every art pixel still lands on whole pixels there.
 - **Social kit.** With the save endpoint running (`python3 tools/save-endpoint.py`), `await __pixel.kit()` in the browser console renders every scene's demo clip as 16:9 and 1:1 MP4 (3840×2160, 2160×2160) and a hero photo as 4:5 and 1:1 PNG (2160×2700, 2160×2160) into `exports/`. Square and portrait frames use pixel size 3 (6 in the 2× files) with the camera fitted to the diorama.
 - `tools/fmp4-to-mp4.py` rewrites a fragmented MP4 (from Chrome's MediaRecorder or a screen recorder) as a standard one without re-encoding.
+- **Export self-test.** Serve the repo (`python3 tools/serve.py`) and open http://localhost:5184/tests/export-selftest.html, then press 运行自检 — or call `await runExportSelfTest()` in that page's console for the structured result (`{ ok, passed, failed, skipped, results }`; add `?auto=1` to the URL to run on load). It checks the export pipeline end to end in the browser: a 0.5 s `renderClip` render is parsed back (ftyp first, moov before mdat, mvhd duration within tolerance, video sample count equals the frame count), a hand-built fragmented MP4 is run through `toStandardMp4` (no moof left, sample bytes identical to the input, so no re-encode), and `muxMp4` without audio must produce exactly one video track. Each case reports 通过 / 失败 / 跳过 with a short reason; browsers without WebCodecs or AudioEncoder skip the cases that need them instead of failing.
 
 ## How it works
 
@@ -178,6 +179,7 @@ non-glowing details in the reflection and shadow passes, and `userData.noMirror`
 - `engine/palettes.js`: palette generation for the palette colour mode
 - `scenes/`: the scenes, their parts and the shared kits
 - `tools/`: the no-cache dev server, the save endpoint for review images, the MP4 rewriter
+- `tests/`: the in-browser export self-test page
 - `exports/`: renders and review images (ignored by git)
 
 ## Credits

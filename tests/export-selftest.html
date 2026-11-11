@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>导出链路自检 · Noxe Pixel Engine</title>
+<style>
+  body { font: 14px/1.6 system-ui, sans-serif; max-width: 720px; margin: 40px auto; padding: 0 16px; color: #222; }
+  h1 { font-size: 20px; }
+  button { font: inherit; padding: 8px 18px; border: 0; border-radius: 6px; background: #2b6cb0; color: #fff; cursor: pointer; }
+  button:disabled { opacity: .5; cursor: default; }
+  #summary { margin: 16px 0; padding: 10px 14px; border-radius: 6px; background: #eee; font-weight: 600; }
+  #summary[data-state="pass"] { background: #c6f6d5; }
+  #summary[data-state="fail"] { background: #fed7d7; }
+  ul { padding: 0; list-style: none; }
+  li { margin: 8px 0; padding: 10px 14px; border-radius: 6px; border-left: 4px solid #ccc; background: #f7f7f7; }
+  li[data-state="pass"] { border-color: #38a169; }
+  li[data-state="fail"] { border-color: #e53e3e; }
+  li[data-state="skip"] { border-color: #d69e2e; }
+  li .st { font-weight: 600; }
+  li[data-state="pass"] .st { color: #38a169; }
+  li[data-state="fail"] .st { color: #e53e3e; }
+  li[data-state="skip"] .st { color: #d69e2e; }
+  small { color: #555; }
+  p.hint { color: #666; }
+  code { background: #eee; padding: 1px 5px; border-radius: 4px; }
+</style>
+</head>
+<body>
+<h1>导出链路自检</h1>
+<p class="hint">
+  覆盖三类断言：<code>renderClip</code> 端到端导出（ftyp 开头、moov 在 mdat 前、mvhd 时长、视频帧数）、
+  <code>toStandardMp4</code> 分片重写（无 moof、样本字节一致）、<code>muxMp4</code> 无音频只出视频轨。
+  缺少 WebCodecs / AudioEncoder 的浏览器会把相关用例标记为“跳过”。
+  也可在控制台调用 <code>await runExportSelfTest()</code> 获取结构化结果；加 <code>?auto=1</code> 打开页面即自动运行。
+</p>
+<button id="run">运行自检</button>
+<div id="summary" data-state="idle">尚未运行</div>
+<ul id="results"></ul>
+<script type="module" src="./export-selftest.js"></script>
+</body>
+</html>
